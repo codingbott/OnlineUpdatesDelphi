@@ -14,6 +14,9 @@ uses
   uc_DownloadBits in 'uc_DownloadBits.pas',
   uc_updatecheck in 'uc_updatecheck.pas';
 
+const
+  c_updateurl = 'https://raw.githubusercontent.com/codingbott/OnlineUpdatesDelphi/main/server/serverinfo.xml';
+
 var
   version: tVersionsInformation;
 begin

@@ -2,9 +2,6 @@ unit uc_updatecheck;
 
 interface
 
-const
-  c_updateurl = 'https://github.com/codingbott/OnlineUpdatesDelphi/server/serverinfo.xml';
-
 type
   TUpdateInfo = record
     version, url, text: string;
@@ -12,7 +9,7 @@ type
 
   TUpdateCheck = class
   public
-    class function checkForUpdate():TUpdateInfo;
+    class function checkForUpdate(updateurl: string):TUpdateInfo;
   end;
 
 implementation
@@ -24,7 +21,7 @@ uses
 
 { TUpdateCheck }
 
-class function TUpdateCheck.checkForUpdate(): TUpdateInfo;
+class function TUpdateCheck.checkForUpdate(updateurl: string): TUpdateInfo;
 var
   req : IXMLHTTPRequest;
   i: IDispatch;
@@ -33,7 +30,7 @@ var
 begin
   req := CoXMLHTTP40.Create;
   try
-    req.Open('GET', c_updateurl, False, EmptyParam, EmptyParam);
+    req.Open('GET', updateurl, False, EmptyParam, EmptyParam);
 
     req.send(EmptyParam);
     if req.status<>200 then
