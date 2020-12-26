@@ -5,10 +5,10 @@ This repro contains the source code of the video series "online updates with del
 This code requires the jedi api lib.
 
 ## Part 1 - Intro and best practices
-https://www.youtube.com/watch?v=MjRVpPztbMU
+https://youtu.be/MjRVpPztbMU
 
 ## Part 2 - all about the version number
-https://www.youtube.com/watch?v=PbLoxL7WNpc&t=22s
+https://youtu.be/PbLoxL7WNpc
 
 ## Part 3 - check for updates and downloading them
--- todo --
+https://youtu.be/dIzU7W9KLrg
