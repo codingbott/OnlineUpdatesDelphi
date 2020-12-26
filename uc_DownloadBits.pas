@@ -65,54 +65,91 @@ class procedure TDownloadBits.DownloadForground(ziel, downloadurl: widestring; D
 var
   bi: IBackgroundCopyManager;
   job: IBackgroundCopyJob;
+  er: IBackgroundCopyError;
   jobId: TGUID;
   r: HRESULT;
 
   // Status Zeug
   p: BG_JOB_PROGRESS;
-  s: BG_JOB_STATE;
-  
+  statusCode: BG_JOB_STATE;
+
   // Timer Zeug
   hTimer: THandle;
   DueTime: TLargeInteger;
   c: boolean;
+  errorContextDescription,
+  errorDescription: LPWSTR;
 begin
   bi:=CreateComObject(CLSID_BackgroundCopyManager) as IBackgroundCopyManager;
   r:=bi.CreateJob('Updatedownload', BG_JOB_TYPE_DOWNLOAD, JobId, job);
   if not Succeeded(r) then
     raise Exception.Create('Create Job Failed');
-  r:=Job.AddFile(PWideChar(downloadurl), PWideChar(ziel));
+  r:=job.AddFile(PWideChar(downloadurl), PWideChar(ziel));
   if not Succeeded(r) then
     raise Exception.Create('Add File Failed');
+
+  job.SetMinimumRetryDelay(1);
+  job.SetPriority(BG_JOB_PRIORITY_FOREGROUND);
+  job.SetNoProgressTimeout(1);
+
   // Download starten
-  Job.Resume();
+  job.Resume();
 
   DueTime:=-10000000;
   hTimer:=CreateWaitableTimer(nil, false, 'EinTimer');
-  SetWaitableTimer(hTimer, DueTime, 1000, nil, nil, false);
-  while True do
-  begin
-    Job.GetState(s);
-
-    if s in [BG_JOB_STATE_TRANSFERRING, BG_JOB_STATE_TRANSFERRED] then
+  try
+    SetWaitableTimer(hTimer, DueTime, 1000, nil, nil, false);
+    while True do
     begin
-      Job.GetProgress(p);
-      DownloadFeedback(nil, p.BytesTransferred, p.BytesTotal, dsDownloadingData, '', c);
-      if c then
-        break;
+      job.GetState(statusCode);
+
+      if statusCode in [BG_JOB_STATE_TRANSFERRING, BG_JOB_STATE_TRANSFERRED] then
+      begin
+        job.GetProgress(p);
+        if assigned(DownloadFeedback) then
+        begin
+          DownloadFeedback(nil, p.BytesTransferred, p.BytesTotal, dsDownloadingData, '', c);
+          if c then
+            break;
+          end;
+      end;
+
+      if statusCode in [BG_JOB_STATE_TRANSFERRED,
+        BG_JOB_STATE_ERROR,
+        BG_JOB_STATE_TRANSIENT_ERROR] then
+          break;
+
+      WaitForSingleObject(hTimer, INFINITE);
     end;
-
-    if s in [BG_JOB_STATE_TRANSFERRED,
-      BG_JOB_STATE_ERROR,
-      BG_JOB_STATE_TRANSIENT_ERROR] then
-        break;
-
-    WaitForSingleObject(hTimer, INFINITE);
+  finally
+    CancelWaitableTimer(hTimer);
+    CloseHandle(hTimer);
   end;
-  CancelWaitableTimer(hTimer);
-  CloseHandle(hTimer);
-  if s=BG_JOB_STATE_TRANSFERRED then
-    job.Complete();
+
+  case statusCode of
+    BG_JOB_STATE_QUEUED: ;
+    BG_JOB_STATE_CONNECTING: ;
+    BG_JOB_STATE_TRANSFERRING: ;
+    BG_JOB_STATE_SUSPENDED: ;
+
+    BG_JOB_STATE_ERROR,
+    BG_JOB_STATE_TRANSIENT_ERROR:
+      if Succeeded(Job.GetError(er)) then
+      begin
+        try
+          er.GetErrorContextDescription(LANGIDFROMLCID(GetThreadLocale()), errorContextDescription);
+          er.GetErrorDescription(LANGIDFROMLCID(GetThreadLocale()), errorDescription);
+          job.Cancel;
+          raise Exception.Create(errorDescription+#13#10+errorContextDescription);
+        finally
+          CoTaskMemFree(errorContextDescription);
+          CoTaskMemFree(errorDescription);
+        end;
+      end;
+    BG_JOB_STATE_TRANSFERRED: job.Complete();
+    BG_JOB_STATE_ACKNOWLEDGED: ;
+    BG_JOB_STATE_CANCELLED: ;
+  end;
 
   job:=nil;
   bi:=nil;

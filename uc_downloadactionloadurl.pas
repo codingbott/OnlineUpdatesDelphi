@@ -13,7 +13,6 @@ type
 
 implementation
 
-
 { TDownload1 }
 
 class procedure TDownloadActionLoadUrl.Download(ziel, downloadurl: string; DownloadFeedback:TDownloadProgressEvent);
@@ -23,7 +22,7 @@ begin
     URL:=downloadurl;
     Filename:=ziel;
     OnDownloadProgress:=DownloadFeedback;
-    Execute();
+    ExecuteTarget(nil);
   finally
     free;
   end;

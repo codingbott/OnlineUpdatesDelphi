@@ -112,7 +112,6 @@
         <DCCReference Include="uc_downloadactionloadurl.pas"/>
         <DCCReference Include="uc_DownloadBits.pas"/>
         <DCCReference Include="uc_updatecheck.pas"/>
-        <None Include="server\serverinfo.xml"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
